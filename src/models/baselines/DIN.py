@@ -7,7 +7,6 @@ import pandas as pd
 from models.BaseModel import MultiContextSeqModel
 
 class DIN(MultiContextSeqModel):
-	# runner = 'ImpressionRunner'
 	runner = 'ExpReRunner'
 	extra_log_args = ['loss_n','att_layers','dnn_layers','history_max','sample_for_train','use_context_features']
 

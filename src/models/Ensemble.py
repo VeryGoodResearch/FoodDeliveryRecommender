@@ -8,7 +8,7 @@ from utils import layers
 import logging
 from tqdm import tqdm
 
-class IntEL(MultiContextSeqModel):
+class Ensemble(MultiContextSeqModel):
 	runner = 'EnsembleRunner'
 	reader = 'ContextScoreReader'
 	extra_log_args = ['base_model1','base_model2','loss_alpha']
@@ -78,7 +78,6 @@ class IntEL(MultiContextSeqModel):
 		self.ctx_embsize = (self.ctx_pre_mh_feature_num+self.ctx_pre_nu_feature_num)*self.embedding_dim
 		self.ctx2emb_linear = nn.Linear(self.ctx_embsize,self.embedding_dim)
 
-		# self.item2score = nn.Linear(self.item_embsize, self.embedding_dim)
 		# self attention
 		self.score_embeddings = nn.Linear(self.model_num, self.embedding_dim)
 		self.s_attn_head = layers.MultiHeadAttention(self.embedding_dim, self.head_num, bias=False)
@@ -92,27 +91,18 @@ class IntEL(MultiContextSeqModel):
 		if self.cross_attention:
 			self.intent_score_attention = layers.CrossAtt(input_qsize=self.embedding_dim, input_vsize=self.embedding_dim, 
 								query_size=self.embedding_dim,key_size=self.embedding_dim,value_size=self.embedding_dim)
-			# self.intent_item_attention = layers.CrossAtt(input_qsize=self.embedding_dim, input_vsize=self.embedding_dim, 
-			# 					query_size=self.embedding_dim,key_size=self.embedding_dim,value_size=self.embedding_dim)
 		else:
 			self.intent_score_embeddings = nn.Sequential(
 						nn.Linear(self.embedding_dim, self.cross_attn_qsize),
 						self.act_func(),
 						nn.Linear(self.cross_attn_qsize, self.embedding_dim, bias=False)
 						)
-			# self.intent_item_embeddings = nn.Sequential(
-			# 			nn.Linear(self.embedding_dim, self.cross_attn_qsize),
-			# 			self.act_func(),
-			# 			nn.Linear(self.cross_attn_qsize, self.embedding_dim, bias=False)
-			# 			)
 
 		self.weight_embeddings = nn.Linear(self.embedding_dim*3, self.model_num)
-		# self.weight_embeddings = nn.Linear(self.embedding_dim*4, self.model_num)
 
 		# encoder
 		self.intent_pred_size = self.item_embsize + self.ctx_embsize 
 		if self.encoder_name == 'GRU4Rec':
-			# self.encoder = GRU4RecEncoder(self.intent_pred_size,hidden_size=self.intent_pred_size)
 			self.encoder = GRU4RecEncoder(self.intent_pred_size,hidden_size=self.intent_pred_size,out_size=self.embedding_dim)
 			self.intent_encoder = GRU4RecEncoder(self.embedding_dim,hidden_size=self.embedding_dim)
 		elif self.encoder_name == 'BERT4Rec':
@@ -121,11 +111,7 @@ class IntEL(MultiContextSeqModel):
 			self.encoder_output = nn.Linear(self.intent_pred_size, self.embedding_dim)
 		else:
 			raise ValueError('Invalid sequence encoder.')
-		# self.intent_hidden_layer = nn.Linear( self.intent_pred_size+self.ctx_embsize+self.embedding_dim,
-		# 					  self.embedding_dim)
 		self.intent_hidden_layer = nn.Linear( self.embedding_dim*4, self.embedding_dim)
-		# self.intent_hidden_layer = nn.Linear( self.intent_pred_size+self.ctx_embsize+self.embedding_dim,
-		# 					  self.embedding_dim)
 		self.intent_pred_layer = nn.Linear(self.embedding_dim, self.intent_num)
 
 		# loss
@@ -136,7 +122,6 @@ class IntEL(MultiContextSeqModel):
 		intent, intent_emb = self.predict_intent(feed_dict)
 		# predict ensemble
 		weights, ens_scores = self.predict_ensemble(feed_dict,intent_emb)
-		# weights, ens_scores = self.predict_ensemble(feed_dict,intent)
 
 		repeat_candidates = (feed_dict['scores'][:,:,1]==0).float()
 		out_dict = {"weights":weights,"prediction":ens_scores,"intents":intent,"candidate_num":feed_dict['candidates'],
@@ -201,18 +186,6 @@ class IntEL(MultiContextSeqModel):
 
 		return pred_intents, hidden_intents # b * 2
 
-	# def predict_ensemble(self,feed_dict,intent):
-	# 	# load data
-	# 	score_list = feed_dict['scores'].float() # b * item num * model num
-	# 	# to weight
-	# 	# h_u = h_u.unsqueeze(dim=1).repeat(1,score_list.size(1),1)
-	# 	# all_xatt = torch.cat([score_xatt,h_u,h_int.repeat(1,score_list.size(1),1)],dim=-1)
-	# 	weights = intent#self.weight_embeddings(intent).softmax(dim=-1)
-	# 	# ens_score = torch.mul(weights,score_list).sum(dim=2)
-	# 	ens_score = torch.mul(weights[:,None,:],score_list).sum(dim=2)
-		
-	# 	return weights, ens_score
-
 	def predict_ensemble(self,feed_dict,intent_emb):
 		# load data
 		score_list = feed_dict['scores'].float() # b * item num * model num
@@ -222,18 +195,6 @@ class IntEL(MultiContextSeqModel):
 
 		# intent embedding
 		h_int = intent_emb.unsqueeze(dim=1)
-		# # item embeddings
-		# item_mh = self.item_mh_embeddings(feed_dict['item_mh_features'])
-		# if self.item_nu_feature_num>0:
-		# 	items_nu = feed_dict['item_nu_features'].float()
-		# 	for i, embedding_layer in enumerate(self.item_nu_embeddings):
-		# 		items_nu_emb.append(embedding_layer(items_nu[:,:,i].unsqueeze(-1)))
-		# 	items_nu_emb = torch.stack(items_nu_emb,dim=-2)
-		# 	item_emb = torch.cat([item_mh,items_nu_emb],dim=-2)
-		# else:
-		# 	item_emb = item_mh
-		# item_emb = item_emb.squeeze(1).flatten(start_dim=-2) # batch, item num, feature num*emb size
-		# h_i = self.item2score(item_emb)
 
 		# user embedding
 		user_ids = (feed_dict['user_id'])
@@ -241,42 +202,25 @@ class IntEL(MultiContextSeqModel):
 
 		# self attention
 		h_s = self.score_embeddings(score_list)
-		# for i in range(self.layer_num):
-		# 	residual = h_s
-		# 	h_s = self.s_attn_head(h_s,h_s,h_s)
-		# 	h_s = self.s_W1(h_s)
-		# 	h_s = self.s_W2(h_s.relu())
-		# 	h_s = self.dropout_layer(h_s)
-		# 	h_s = self.s_layer_norm(h_s+residual)
-
+  
 		# cross-attention
 		if self.cross_attention:
 			score_xatt, score_xatt_w = self.intent_score_attention(h_s,h_int,valid=None, scale=1/torch.sqrt(torch.tensor(self.cross_attn_qsize)),act_v=None)
-			# item_xatt, item_xatt_w = self.intent_item_attention(h_i,h_int,valid=None, scale=1/torch.sqrt(torch.tensor(self.cross_attn_qsize)),act_v=None)
-			# score_xatt, score_xatt_w = self.intent_score_attention(h_int,h_s,valid=None, scale=1/torch.sqrt(torch.tensor(self.cross_attn_qsize)),act_v=None)
-			# score_xatt = score_xatt.repeat(1,score_list.size(1),1)
 		else:
 			score_intent = self.intent_score_embeddings(h_int)
 			score_xatt = torch.mul(h_s,score_intent)
-			# item_intent = self.intent_item_embeddings(h_i)
-			# item_xatt = torch.mul(h_s,item_intent)
 
 		# to weight
 		h_u = h_u.unsqueeze(dim=1).repeat(1,score_list.size(1),1)
 		all_xatt = torch.cat([score_xatt,h_u,h_int.repeat(1,score_list.size(1),1)],dim=-1)
-		# all_xatt = torch.cat([item_xatt, score_xatt,h_u,h_int.repeat(1,score_list.size(1),1)],dim=-1)
-		# all_xatt = torch.cat([score_xatt.squeeze(dim=1),h_u,h_int.squeeze(dim=1)],dim=-1)
 		weights = self.weight_embeddings(all_xatt).softmax(dim=-1)
-		# ens_score = torch.mul(weights,score_list.sigmoid()).sum(dim=2)
 		ens_score = torch.mul(weights,score_norm).sum(dim=2)
 		
 		return weights, ens_score
 
 	def loss_bpr(self, out_dict, labels=None, mean=True):
 		prediction = out_dict['prediction']
-		# candidate_num = out_dict['candidate_num']
 		neg_mask = (1-out_dict['repeat_candidate'])*out_dict["repeat"][:,None]+(out_dict['repeat_candidate'])*(~out_dict["repeat"])[:,None]
-		# neg_mask = (torch.arange(prediction.shape[1])[None,:].to(self.device) < candidate_num[:,None])[:,1:]
 		neg_mask = neg_mask[:,1:]
 		neg_num = neg_mask.sum(dim=-1)
 		neg_mask[:,0] += (neg_num==0).float()
@@ -292,24 +236,13 @@ class IntEL(MultiContextSeqModel):
 		rec_loss = self.loss_bpr(out_dict,labels=labels,mean=False)
 		pred_intents = out_dict["intents"]
 		int_loss = self.intent_loss(pred_intents[:,0], out_dict["repeat"].float())
-		# mask = out_dict["repeat"].float()
-		# mask2 = (torch.rand_like(mask)>0.8).float()
-		# exclude_mask = mask * mask2 # hide 40% repeat samples
-		# loss_alpha = 1-exclude_mask
-		# loss_alpha = out_dict["repeat"].float()*0.6+(1-out_dict["repeat"].float())*1.0
-		# loss = (loss_alpha * rec_loss + (1-loss_alpha)*int_loss).mean()
-		# loss = (loss_alpha * rec_loss + int_loss).mean()
 		loss = (rec_loss*self.loss_alpha + int_loss).mean()
-		# loss = (int_loss).mean()
 		return loss
 
 	class Dataset(MultiContextSeqModel.Dataset):
 		def __init__(self,model,corpus,phase): 
 			super().__init__(model, corpus, phase)
 			self.scores = corpus.scores[phase]
-			# if len(self.scores) > len(idx_select):
-			# 	logging.info("Warning: index and scores not match!")
-			# 	self.scores = self.scores[idx_select]
 		# Called after initialization
 		def prepare(self):
 			if self.model.buffer and self.phase not in  ['dev','train']:

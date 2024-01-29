@@ -14,7 +14,6 @@ from models.BaseModel import MultiContextSeqModel
 
 
 class FM(MultiContextSeqModel):
-	# runner = 'ImpressionRunner'
 	runner = 'ExpReRunner'
 	extra_log_args=['sample_for_train','train_exploration','test_exploration',
                  'use_context_features','include_item_features']

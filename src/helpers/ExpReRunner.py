@@ -100,8 +100,6 @@ class ExpReRunner(ImpressionRunner):
 			rows.extend([i for _ in range(min(neg_num[i],mn))])
 			cols.extend([_ for _ in range(min(pos_num[i],mp))])
 			cols.extend([_ for _ in range(mp,mp+min(neg_num[i],mn))])
-			#cols.extend([_ for _ in range(len(nonzero))])
-			#cols.extend([_ for _ in range(min(pos_num[i],mp)+min(neg_num[i],mn))]) #别忘了开头的一个
 		mask[rows, cols] = 1
 
 		predictions = np.where(mask == 1,predictions,-np.inf)

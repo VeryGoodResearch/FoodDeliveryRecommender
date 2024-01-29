@@ -162,8 +162,6 @@ class SDIM(MultiContextSeqModel):
 			sequence_emb_flatten = sequence_emb.unsqueeze(1).repeat(1,target_emb.size(1),1,1).view(
 	   					-1,sequence_emb.size(1),sequence_emb.size(2))
 			mask_flatten = mask.unsqueeze(1).repeat(1,target_emb.size(1),1).view(-1,sequence_emb.size(1))
-			# seq_field = list(flatten([sequence_field]))[0] # flatten nested list to pick the first field
-			# mask = X[seq_field].long() != 0 # padding_idx = 0 required in input data
 			short_interest_emb_flatten = self.short_attention[idx](target_emb_flatten, sequence_emb_flatten, mask_flatten)
 			short_interest_emb = short_interest_emb_flatten.view(target_emb.shape)
 			for field, field_emb in zip(list(flatten([sequence_field])),

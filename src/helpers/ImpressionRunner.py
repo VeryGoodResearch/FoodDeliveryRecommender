@@ -97,7 +97,7 @@ class ImpressionRunner(BaseRunner):
             predictions=predictions-eps*a_mask
 
 
-            sort_idx = (-predictions).argsort(axis=1,kind='mergesort') #快排不保序
+            sort_idx = (-predictions).argsort(axis=1,kind='mergesort') 
             if check_sort_idx==1:
                 logging.info(str(sort_idx[:10]))
 
@@ -185,8 +185,6 @@ class ImpressionRunner(BaseRunner):
             rows.extend([i for _ in range(min(neg_num[i],mn))])
             cols.extend([_ for _ in range(min(pos_num[i],mp))])
             cols.extend([_ for _ in range(mp,mp+min(neg_num[i],mn))])
-            #cols.extend([_ for _ in range(len(nonzero))])
-            #cols.extend([_ for _ in range(min(pos_num[i],mp)+min(neg_num[i],mn))]) #别忘了开头的一个
         mask[rows, cols] = 1
 
         predictions = np.where(mask == 1,predictions,-np.inf)

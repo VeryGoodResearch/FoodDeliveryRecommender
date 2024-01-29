@@ -107,7 +107,6 @@ class BaseModel(nn.Module):
 			self.phase = phase  # train / dev / test
 
 			self.buffer_dict = dict()
-			#self.data = utils.df_to_dict(corpus.data_df[phase])#this raise the VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences warning
 			self.data = corpus.data_df[phase].to_dict('list')
 			# ↑ DataFrame is not compatible with multi-thread operations
 

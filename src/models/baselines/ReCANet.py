@@ -7,7 +7,6 @@ import pandas as pd
 from models.BaseModel import MultiContextSeqModel
 
 class ReCANet(MultiContextSeqModel):
-	# runner = 'ImpressionRunner'
 	runner = 'ExpReRunner'
 	extra_log_args = ['history_max','history_w','sample_for_train']
 	
