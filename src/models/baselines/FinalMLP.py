@@ -141,7 +141,7 @@ class FinalMLP(MultiContextCFModel):
 		emb_dim1, emb_dim2 = feat1.shape[-1], feat2.shape[-1]
 		batch_size, item_num = feat1.shape[0], feat1.shape[1]
 		mlp1_output = self.mlp1(feat1.view(-1,emb_dim1)).view(batch_size, item_num, -1)
-		mlp2_output = self.mlp1(feat1.view(-1,emb_dim2)).view(batch_size, item_num, -1)
+		mlp2_output = self.mlp2(feat2.view(-1,emb_dim2)).view(batch_size, item_num, -1)
 		y_pred = self.fusion_module(mlp1_output, mlp2_output)
 		# y_pred = self.fusion_module(self.mlp1(feat1), self.mlp2(feat2))
 		y_pred = self.output_activation(y_pred)
