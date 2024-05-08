@@ -1,5 +1,5 @@
 # FoodDeliveryRecommender
-Codes for paper "Recommender for Its Purpose: A Case Study on Food Delivery Recommendations".
+Codes for paper "Right Tool, Right Job: Recommendation for Repeat and Exploration Consumption in Food Delivery".
 
 Codes are all included in ``src/``.
 
