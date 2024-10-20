@@ -7,14 +7,15 @@ Implementations of our proposed ``RepRec``, ``ExpRec``, and ``Ensemble`` modules
 
 The hyper-parameter settings are shown in ``src/run.sh``.
 
-The code framework follows [ReChorus](https://github.com/THUwangcy/ReChorus).
+The code framework follows [ReChorus2.0](https://github.com/THUwangcy/ReChorus).
 
 If you find our work or codes useful, please kindly cite our paper:
 ```
-@article{li2024recommender,
-  title={Recommender for Its Purpose: Repeat and Exploration in Food Delivery Recommendations},
+@inproceedings{li2024right,
+  title={Right Tool, Right Job: Recommendation for Repeat and Exploration Consumption in Food Delivery},
   author={Li, Jiayu and Sun, Aixin and Ma, Weizhi and Sun, Peijie and Zhang, Min},
-  journal={arXiv preprint arXiv:2402.14440},
+  booktitle={Proceedings of the 18th ACM Conference on Recommender Systems},
+  pages={643--653},
   year={2024}
 }
 ```
